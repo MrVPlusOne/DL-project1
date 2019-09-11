@@ -4,20 +4,39 @@ import torch.nn as nn
 from typing import *
 import numpy as np
 from PIL import Image
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+
 
 """
 Optional: Your code here
 """
 
-channels = [3, 16, 8, 8]
+channels = [3, 24, 16, 12]
 outChannels = 8
-kernel_size = 3
+kernel_size = 5
 stride = 2
-padding = 0
+padding = 2
 
 imageSize = 256
 maxOutputBytes = 8192
 maxOutputFloats = int(maxOutputBytes / 4)
+
+transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.ToTensor()
+])
+
+invTransform = transforms.Compose([
+    transforms.ToPILImage()
+])
+
+T = TypeVar('T')
+device = torch.device("cpu")
+
+def toDevice(m: T) -> T:
+    return m.to(device, torch.float)
+
 
 def testOutputSize():
     enc: Encoder = Encoder()
@@ -27,6 +46,11 @@ def testOutputSize():
     dec: Decoder = Decoder()
     r2 = dec.forward(r)
     print("reconstructed shape: {}".format(r2.shape))
+
+
+def doubleRelu(x, slop=0.01):
+    return F.relu(x) - F.relu(x - 1.0) - F.relu(-x) * slop + F.relu(x - 1.0) * slop
+
 
 def encodeLayers() -> nn.Sequential:
     layers = [
@@ -42,20 +66,14 @@ def encodeLayers() -> nn.Sequential:
 def decodeLayers() -> nn.Sequential:
     cns = channels.copy()
     cns.reverse()
-    layers = [nn.ConvTranspose2d(outChannels, cns[0], kernel_size, stride, padding=padding)]
-
-    def outPadding(i: int) -> int:
-        if i == len(cns) - 2:
-            return 1
-        else:
-            return 0
+    layers = [nn.ConvTranspose2d(outChannels, cns[0], kernel_size, stride, padding=padding, output_padding=1)]
 
     layers.extend([
         layer
         for i in range(len(cns) - 1)
         for layer in [
             nn.ReLU(True),
-            nn.ConvTranspose2d(cns[i], cns[i + 1], kernel_size, stride, padding=padding, output_padding=outPadding(i)),
+            nn.ConvTranspose2d(cns[i], cns[i + 1], kernel_size, stride, padding=padding, output_padding=1),
         ]])
     return nn.Sequential(*layers)
 
@@ -81,13 +99,8 @@ class Decoder(torch.nn.Module):
         self.model = decodeLayers()
 
     def forward(self, img) -> Tensor:
-        return self.model.forward(img)
+        return doubleRelu(self.model(img))
 
-    def decodeImage(self, t: Tensor, invTransform):
-        t = self.forward(t)
-        t = invTransform(t)
-        array = t.squeeze(0).permute(1,2,0).detach().numpy()
-        return Image.fromarray(array)
 
 class EncoderDecoder(torch.nn.Module):
     def __init__(self):
@@ -97,12 +110,6 @@ class EncoderDecoder(torch.nn.Module):
 
     def forward(self, img) -> Tensor:
         return self.decoder(self.encoder(img))
-
-    def encodeDecodeImage(self, img, device, transform, invTransform):
-        enc: Encoder = self.encoder
-        t = enc.encodeImage(img, device, transform)
-        dec: Decoder = self.decoder
-        return dec.decodeImage(t, invTransform)
 
 
 # testOutputSize()

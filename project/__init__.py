@@ -1,11 +1,22 @@
+import torch
 import numpy as np
-import PIL
-    
+from .models import EncoderDecoder, transform, invTransform, toDevice
 
-# from .models import Encoder, Decoder
-# encode = Encoder()
-# decode = Decoder()
-# encode.eval()
-# decode.eval()
+model: EncoderDecoder = EncoderDecoder()
+model.load_state_dict(torch.load('savedModel/state_dict.pth'))
+model.eval()
 
-# Load model weights here
+
+def encode(img) -> np.ndarray:
+    with torch.no_grad():
+        img = toDevice(transform(img)[None, :, :, :])
+        img: torch.Tensor = model.encoder(img)
+        return img.detach().cpu().numpy()
+
+
+def decode(img: np.ndarray):
+    with torch.no_grad():
+        t = toDevice(torch.tensor(img, dtype=torch.float))
+        t = model.decoder(t).squeeze(0).detach().cpu()
+        img = invTransform(t)
+        return img
