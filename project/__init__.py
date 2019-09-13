@@ -3,7 +3,7 @@ import numpy as np
 from .models import EncoderDecoder, transform, invTransform, toDevice
 
 model: EncoderDecoder = EncoderDecoder()
-model.load_state_dict(torch.load('savedModel/state_dict.pth'))
+model.load_state_dict(torch.load('modelToLoad/state_dict.pth'))
 model.eval()
 
 

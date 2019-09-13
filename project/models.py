@@ -7,14 +7,9 @@ from PIL import Image
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-
-"""
-Optional: Your code here
-"""
-
 channels = [3, 24, 16, 12]
 outChannels = 8
-kernel_size = 5
+kernelSize = 5
 stride = 2
 padding = 2
 
@@ -23,7 +18,8 @@ maxOutputBytes = 8192
 maxOutputFloats = int(maxOutputBytes / 4)
 
 transform = transforms.Compose([
-    transforms.Resize(256),
+    transforms.Resize(imageSize),
+    transforms.RandomCrop(imageSize),
     transforms.ToTensor()
 ])
 
@@ -34,6 +30,7 @@ invTransform = transforms.Compose([
 T = TypeVar('T')
 device = torch.device("cpu")
 
+
 def toDevice(m: T) -> T:
     return m.to(device, torch.float)
 
@@ -41,10 +38,10 @@ def toDevice(m: T) -> T:
 def testOutputSize():
     enc: Encoder = Encoder()
     x = torch.randn([1, 3, imageSize, imageSize], dtype=torch.float)
-    r = enc.forward(x)
+    r = enc(x)
     print("output shape {} has {} elements. Required limit = {}".format(r.shape, r.numel(), maxOutputFloats))
     dec: Decoder = Decoder()
-    r2 = dec.forward(r)
+    r2 = dec(r)
     print("reconstructed shape: {}".format(r2.shape))
 
 
@@ -57,23 +54,23 @@ def encodeLayers() -> nn.Sequential:
         layer
         for i in range(len(channels) - 1)
         for layer in [
-            nn.Conv2d(channels[i], channels[i + 1], kernel_size, stride, padding),
+            nn.Conv2d(channels[i], channels[i + 1], kernelSize, stride, padding),
             nn.ReLU(True)]]
-    layers.append(nn.Conv2d(channels[-1], outChannels, kernel_size, stride, padding))
+    layers.append(nn.Conv2d(channels[-1], outChannels, kernelSize, stride, padding))
     return nn.Sequential(*layers)
 
 
 def decodeLayers() -> nn.Sequential:
     cns = channels.copy()
     cns.reverse()
-    layers = [nn.ConvTranspose2d(outChannels, cns[0], kernel_size, stride, padding=padding, output_padding=1)]
+    layers = [nn.ConvTranspose2d(outChannels, cns[0], kernelSize, stride, padding=padding, output_padding=1)]
 
     layers.extend([
         layer
         for i in range(len(cns) - 1)
         for layer in [
             nn.ReLU(True),
-            nn.ConvTranspose2d(cns[i], cns[i + 1], kernel_size, stride, padding=padding, output_padding=1),
+            nn.ConvTranspose2d(cns[i], cns[i + 1], kernelSize, stride, padding=padding, output_padding=1),
         ]])
     return nn.Sequential(*layers)
 
