@@ -41,7 +41,7 @@ def loadModelFromFile(file: Path):
     model.load_state_dict(torch.load(file))
 
 
-loadModelFromFile(Path("saves/Thu Sep 12 13:11:33 2019/epoch11/state_dict.pth"))
+# loadModelFromFile(Path("saves/Fri Sep 13 10:12:22 2019/epoch37/state_dict.pth"))
 # %% test on sample images
 from PIL import Image
 from pathlib import Path
@@ -96,7 +96,7 @@ startTime = datetime.datetime.now().ctime()
 
 def trainingLoop():
     step = 0
-    for epoch in range(12, 30):
+    for epoch in range(0, 100):
         print("===epoch {}===".format(epoch))
         progress = 0
         for img, _ in islice(trainSet, trainBatches):

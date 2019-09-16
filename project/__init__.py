@@ -16,7 +16,7 @@ def encode(img) -> np.ndarray:
 
 def decode(img: np.ndarray):
     with torch.no_grad():
-        t = toDevice(torch.tensor(img, dtype=torch.float))
+        t = toDevice(torch.tensor(img))
         t = model.decoder(t).squeeze(0).detach().cpu()
         img = invTransform(t)
         return img
