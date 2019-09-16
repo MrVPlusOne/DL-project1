@@ -1,3 +1,6 @@
+### Credit
+Jiayi Wei, Yan Zheng, Mao Ye
+
 ### Model: Convolutional auto encoder decoder
  * Consists of 4 layers of 2D convolutions with kernel size = 5 and stride = 2.
 Each convolution is followed by a ReLu activation except the bottleneck layer (we want all elements to be real values so that it encodes information more effectively). We also select the channel sizes such that the bottleneck layer make full use of the bytes limit. 
